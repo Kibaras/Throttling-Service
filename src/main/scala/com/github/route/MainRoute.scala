@@ -8,12 +8,13 @@ trait MainRoute {
   val throtlingRoute: Route = {
     get {
       pathSingleSlash {
-        parameter('token.?){ token =>
-          complete(token)
-        }
-//        optionalHeaderValueByName("token") {
+        optionalHeaderValueByName("Authorisation") { token =>
+
+
+          // would be better:
 //          case Some(s) => complete("")
-//          case None => complete(StatusCodes.Unauthorized)}
+//          case None => complete(StatusCodes.Unauthorized)
+        }
       }
     }
   }
