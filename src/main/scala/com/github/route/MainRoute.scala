@@ -9,7 +9,7 @@ trait MainRoute {
     get {
       pathSingleSlash {
         optionalHeaderValueByName("Authorisation") { token =>
-
+          complete(token)
 
           // would be better:
 //          case Some(s) => complete("")
