@@ -7,8 +7,8 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 import akka.actor.{Actor, ActorRef}
-import com.github.model.commands.RemoveToken
-import com.github.model.{Sla, Token}
+import com.github.model.commands.{RemoveToken, SlaCallback}
+import com.github.model.{Sla, Token, User}
 
 class SlaServiceMock extends Actor with SlaService {
   import context.dispatcher
@@ -30,7 +30,7 @@ class SlaServiceMock extends Actor with SlaService {
         getSlaByToken(token.token)
           .map { sla =>
             query.get(token).asScala.foreach { receiver =>
-              receiver ! sla
+              receiver ! SlaCallback(User(sla.user), sla.rps, token)
             }
           }
           .andThen {
