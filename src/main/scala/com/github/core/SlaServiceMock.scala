@@ -10,9 +10,9 @@ import com.github.model.{Sla, Token, User}
 class SlaServiceMock extends Actor with SlaService {
   import context.dispatcher
 
-  //  val query = new ConcurrentSkipListMap[Token, KeySetView[ActorRef, lang.Boolean]]()
+  protected val tokenToNameHolder: mutable.Map[String, String] = mutable.Map[String, String]()
 
-  val query = mutable.Map[Token, mutable.HashSet[ActorRef]]()
+  protected val query = mutable.Map[Token, mutable.HashSet[ActorRef]]()
 
   def receive: Receive = {
     case RemoveToken(token) =>
@@ -26,29 +26,25 @@ class SlaServiceMock extends Actor with SlaService {
         val receiversSet = mutable.HashSet[ActorRef]()
         receiversSet += senderRef
         query += token -> receiversSet
-        getSlaByToken(token.token)
-          .map { sla =>
-            query.get(token).foreach(_.foreach { receiver =>
-              receiver ! SlaCallback(User(sla.user), sla.rps)
-            })
-          }
-          .andThen {
-            case _ => self ! RemoveToken(token)
-          }
-      }
+        val sla = getSlaByToken(token.token)
 
-    case _ =>
+        query
+          .get(token)
+          .map(_.foreach(receiver => replyWithTimeout(receiver, SlaCallback(User(sla.user), sla.rps))))
+          .foreach(_ => self ! RemoveToken(token))
+      }
 
     case UserToken(user, token) =>
       tokenToNameHolder += token -> user
   }
 
-  override def getSlaByToken(token: String)(implicit ec: ExecutionContext): Future[Sla] = Future {
+  def replyWithTimeout(receiver: ActorRef, msg: Any)(implicit ec: ExecutionContext): Future[Unit] = Future {
     Thread.sleep(241 + Random.nextInt(20))
-    Sla(getUser(token), Random.nextInt(50) + 1)
+    receiver ! msg
   }
 
-  val tokenToNameHolder: mutable.Map[String, String] = mutable.Map[String, String]()
+  override def getSlaByToken(token: String): Sla =
+    Sla(getUser(token), Random.nextInt(50) + 1)
 
   def getUser(token: String): String = {
     tokenToNameHolder.get(token) match {
