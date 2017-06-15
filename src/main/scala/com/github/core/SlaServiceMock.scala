@@ -4,8 +4,8 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 import akka.actor.{Actor, ActorRef}
-import com.github.model.commands.{RemoveToken, SlaCallback}
-import com.github.model.{Sla, Token, User}
+import com.github.model.commands.RemoveToken
+import com.github.model.{Sla, Token}
 
 class SlaServiceMock extends Actor with SlaService {
   import context.dispatcher
@@ -18,24 +18,17 @@ class SlaServiceMock extends Actor with SlaService {
     case RemoveToken(token) =>
       query -= token
 
+    case token: Token if query.contains(token) =>
+      query.get(token).map(_ += sender())
+
     case token: Token =>
-      val senderRef = sender()
-      if (query.contains(token)) {
-        query.get(token).map(_ += senderRef)
-      } else {
-        val receiversSet = mutable.HashSet[ActorRef]()
-        receiversSet += senderRef
-        query += token -> receiversSet
-        val sla = getSlaByToken(token.token)
-
-        query
-          .get(token)
-          .map(_.foreach(receiver => replyWithTimeout(receiver, SlaCallback(User(sla.user), sla.rps))))
-          .foreach(_ => self ! RemoveToken(token))
-      }
-
-    case UserToken(user, token) =>
-      tokenToNameHolder += token -> user
+      val receiversSet = mutable.HashSet[ActorRef](sender())
+      query += token -> receiversSet
+      val sla = getSlaByToken(token.token)
+      query
+        .get(token)
+        .map(requesters => requesters.foreach(receiver => replyWithTimeout(receiver, sla)))
+        .foreach(_ => self ! RemoveToken(token))
   }
 
   def replyWithTimeout(receiver: ActorRef, msg: Any)(implicit ec: ExecutionContext): Future[Unit] = Future {
@@ -50,27 +43,11 @@ class SlaServiceMock extends Actor with SlaService {
     tokenToNameHolder.get(token) match {
       case Some(s) => s
       case None =>
-        val user = SlaServiceMock.users(Random.nextInt(SlaServiceMock.totalUsers))
-        self ! UserToken(user, token)
+        val user = Random.alphanumeric.take(5).mkString
+        tokenToNameHolder += token -> user
         user
     }
   }
 
   case class UserToken(user: String, token: String)
-}
-
-object SlaServiceMock {
-  val users: Vector[String] = Vector[String](
-    "max",
-    "roman",
-    "exler",
-    "victor",
-    "cesar",
-    "homer",
-    "bart",
-    "lisa",
-    "meggy",
-    "marge")
-
-  val totalUsers: Int = SlaServiceMock.users.length
 }

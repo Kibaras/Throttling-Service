@@ -6,8 +6,7 @@ import scala.util.Random
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import com.github.core.SlaServiceMock
-import com.github.model.commands.SlaCallback
-import com.github.model.{Token, User}
+import com.github.model.{Sla, Token, User}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 class SlaServiceTest extends TestKit(ActorSystem("SlaSystem")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
@@ -22,7 +21,7 @@ class SlaServiceTest extends TestKit(ActorSystem("SlaSystem")) with ImplicitSend
     val sla = system.actorOf(Props[SlaServiceMock])
     "send back Smessages" in {
       sla ! Token(Random.alphanumeric.take(5).mkString)
-      expectMsgClass(classOf[SlaCallback])
+      expectMsgClass(classOf[Sla])
     }
 
     "Return one message ~ 250 millis" in {
@@ -39,11 +38,12 @@ class SlaServiceTest extends TestKit(ActorSystem("SlaSystem")) with ImplicitSend
 
     "Check messages" in {
       val token = Token(Random.alphanumeric.take(5).mkString)
-      val set = mutable.Set[User]()
-      for (a <- 1 to 10) {
+      val set = mutable.Set[String]()
+
+      for (a <- 1 to 20) {
         sla ! token
         expectMsgPF(262 millis) {
-          case SlaCallback(user, _) =>
+          case Sla(user, _) =>
             set += user
         }
       }
