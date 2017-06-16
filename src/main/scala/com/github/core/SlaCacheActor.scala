@@ -5,35 +5,46 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
+import akka.util.Timeout
 import com.github.model.{Sla, SlaCache, Token, User}
+import com.typesafe.scalalogging.LazyLogging
 
-class SlaCacheActor extends Actor {
+class SlaCacheActor extends Actor with LazyLogging {
   import context.dispatcher
 
+  implicit val timeout = Timeout(100 second)
+
   val clearTimeout: Int = 3 * 1000
+
+  val slaService: ActorRef = context.actorOf(Props[SlaServiceMock], "SlaService")
 
   override def preStart(): Unit = {
     super.preStart()
     context.system.scheduler.schedule(3 seconds, 3 seconds, self, ClearCache)
   }
 
-  val slaService: ActorRef = context.actorOf(Props[SlaServiceMock])
+  logger.debug(s"Cache actor started")
 
   val slaCache: mutable.Map[User, SlaCache] = mutable.Map[User, SlaCache]()
 
   def receive: Receive = {
     case token: Token =>
       val senderRef = sender()
-      slaService ! token
-      getCachedData(token, slaCache).foreach(slaCallback => senderRef ! slaCallback)
+      logger.debug(s"Message $token from $senderRef was gotten")
       requestSlaService(token)
-      .map{sla =>
-        val newSla = SlaUpd(token, sla)
-        self ! newSla
-        senderRef ! newSla
-      }
+        .map { sla =>
+          val newSla = SlaUpd(token, sla)
+          self ! newSla
+          senderRef ! sla
+        }
+      getCachedData(token, slaCache)
+        .foreach { slaCallback =>
+          logger.debug(s"response to $senderRef with $slaCallback")
+          senderRef ! slaCallback
+        }
 
     case sla: SlaUpd =>
+      logger.debug(s"Starting update cache with $sla")
       if (slaCache.get(sla.user).isDefined) {
         slaCache.get(sla.user)
           .map(cache => cache.newSlaCache(sla.rps, sla.token))
@@ -53,7 +64,6 @@ class SlaCacheActor extends Actor {
 
   def requestSlaService(token: Token)(implicit ec: ExecutionContext): Future[Sla] =
     (slaService ? token).mapTo[Sla]
-
 
   def successRace[T](f: Future[T], g: Future[T])(implicit ec: ExecutionContext): Future[T] = {
     val p = Promise[T]()

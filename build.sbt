@@ -16,12 +16,14 @@ scalacOptions := Seq(
 )
 
 libraryDependencies ++= {
+  val latest = "latest.release"
   Seq(
-    "com.typesafe.akka" %% "akka-actor" % "latest.release",
-    "com.typesafe.akka" %% "akka-testkit" % "latest.release" % Test,
-    "com.typesafe.akka" %% "akka-http" % "latest.release",
-    "com.typesafe.akka" %% "akka-http-testkit" % "latest.release" % Test,
-    "org.scalatest" %% "scalatest" % "latest.release" % Test,
-    "ch.qos.logback" % "logback-classic" % "latest.release"
+    "com.typesafe.akka" %% "akka-actor" % latest,
+    "com.typesafe.akka" %% "akka-testkit" % latest % Test,
+    "com.typesafe.akka" %% "akka-http" % latest,
+    "com.typesafe.akka" %% "akka-http-testkit" % latest % Test,
+    "org.scalatest"     %% "scalatest" % latest % Test,
+    "com.typesafe.scala-logging"  %% "scala-logging" % latest,
+    "ch.qos.logback"    % "logback-classic" % latest
   )
 }
