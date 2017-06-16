@@ -4,18 +4,18 @@ import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 import akka.actor.{Actor, ActorRef}
-import com.github.model.commands.RemoveToken
+import com.github.model.commands.RemoveQuerryedToken
 import com.github.model.{Sla, Token}
 
 class SlaServiceMock extends Actor with SlaService {
   import context.dispatcher
 
-  protected val tokenToNameHolder: mutable.Map[String, String] = mutable.Map[String, String]()
+  protected val tokenToNameHolder = mutable.Map[String, String]()
 
   protected val query = mutable.Map[Token, mutable.HashSet[ActorRef]]()
 
   def receive: Receive = {
-    case RemoveToken(token) =>
+    case RemoveQuerryedToken(token) =>
       query -= token
 
     case token: Token if query.contains(token) =>
@@ -27,8 +27,14 @@ class SlaServiceMock extends Actor with SlaService {
       val sla = getSlaByToken(token.token)
       query
         .get(token)
-        .map(requesters => requesters.foreach(receiver => replyWithTimeout(receiver, sla)))
-        .foreach(_ => self ! RemoveToken(token))
+        .foreach { requesters =>
+          requesters.foreach { receiver =>
+            replyWithTimeout(receiver, sla)
+              .andThen {
+                case _ => self ! RemoveQuerryedToken(token)
+              }
+          }
+        }
   }
 
   def replyWithTimeout(receiver: ActorRef, msg: Any)(implicit ec: ExecutionContext): Future[Unit] = Future {
