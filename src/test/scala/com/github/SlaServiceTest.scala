@@ -8,11 +8,7 @@ import com.github.core.SlaServiceMock
 import com.github.model.{Sla, Token}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
-class SlaServiceTest extends TestKit(ActorSystem("SlaSystem")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
-
-  override protected def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
-  }
+class SlaServiceTest extends ActorTestTemplate("SlaSystem"){
 
   "An SlaService" must {
     "send back Smessages" in {

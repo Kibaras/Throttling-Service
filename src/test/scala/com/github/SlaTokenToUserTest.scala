@@ -1,22 +1,16 @@
 package com.github
 
 import scala.collection.mutable
-import scala.concurrent.duration._
 import scala.util.Random
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.actor.Props
 import com.github.core.SlaServiceMock
 import com.github.model.{Sla, Token}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
-class SlaTokenToUserTest extends TestKit(ActorSystem("SlaTokenToUserSystem")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
-  override protected def afterAll(): Unit = {
-    TestKit.shutdownActorSystem(system)
-  }
+class SlaTokenToUserTest extends ActorTestTemplate("SlaTokenToUserSystem") {
 
   "An SlaService" must {
     val sla = system.actorOf(Props[SlaServiceMock])
-    "Check messages" in {
+    "Must return same user on same token" in {
       val token = Token(Random.alphanumeric.take(5).mkString)
       val set = mutable.Set[String]()
 
