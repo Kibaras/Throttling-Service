@@ -3,13 +3,12 @@ package com.github.core
 import scala.collection.mutable
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.Success
-import akka.actor.{Actor, Props}
-import akka.pattern._
-import com.github.model.commands.SlaCallback
-import com.github.model.{SlaCache, Token, User}
+import akka.actor.{Actor, ActorRef, Props}
+import akka.pattern.ask
+import com.github.model.{Sla, SlaCache, Token, User}
 
 class SlaCacheActor extends Actor {
+  import context.dispatcher
 
   val clearTimeout: Int = 3 * 1000
 
@@ -18,26 +17,28 @@ class SlaCacheActor extends Actor {
     context.system.scheduler.schedule(3 seconds, 3 seconds, self, ClearCache)
   }
 
-  val slaService = context.actorOf(Props[SlaServiceMock])
+  val slaService: ActorRef = context.actorOf(Props[SlaServiceMock])
 
-  val slaCache = mutable.Map[User, SlaCache]()
+  val slaCache: mutable.Map[User, SlaCache] = mutable.Map[User, SlaCache]()
 
   def receive: Receive = {
     case token: Token =>
-      val sernderRef = sender()
+      val senderRef = sender()
       slaService ! token
-      getCachedData(token).map(slaCallback => sernderRef ! slaCallback)
-
-    case callback: SlaCallback =>
-      val user = callback.user
-      slaCache.get(user) match {
-        case Some(s) =>
-          val tokens = s.tokens + callback.token
-          val cacheData = SlaCache(System.currentTimeMillis, callback.rps, s.usedRps, tokens)
-          slaCache.update(user, cacheData)
-        case None =>
-          slaCache += callback.user -> SlaCache(System.currentTimeMillis, callback.rps, callback.rps, Set(callback.token))
+      getCachedData(token, slaCache).foreach(slaCallback => senderRef ! slaCallback)
+      requestSlaService(token)
+      .map{sla =>
+        val newSla = SlaUpd(token, sla)
+        self ! newSla
+        senderRef ! newSla
       }
+
+    case sla: SlaUpd =>
+      if (slaCache.get(sla.user).isDefined) {
+        slaCache.get(sla.user)
+          .map(cache => cache.newSlaCache(sla.rps, sla.token))
+          .foreach(newCache => slaCache += sla.user -> newCache) // update cache
+      } else slaCache += sla.user -> SlaCache(getTime, sla.rps, Set(sla.token))
 
     case ClearCache =>
       val time: Long = System.currentTimeMillis
@@ -46,16 +47,13 @@ class SlaCacheActor extends Actor {
       }
   }
 
-  def getCachedData(token: Token)(implicit ec: ExecutionContext): Future[SlaCallback] = {
-    val x: Future[SlaCallback] = Future(slaCache.find { kv =>
-      kv._2.tokens.contains(token)
-    }.get).map(all => SlaCallback(all._1, all._2.rps, token))
+  def getCachedData(token: Token, slaCache: mutable.Map[User, SlaCache]): Option[Sla] = slaCache
+    .find { case (_, sla) => sla.tokens.contains(token) }
+    .map { case (user, slaData) => Sla(user.name, slaData.rps) }
 
-    val y: Future[SlaCallback] = (slaService ? Token).mapTo[SlaCallback].andThen {
-      case Success(calllback) => self ! calllback
-    }
-    successRace(x, y)
-  }
+  def requestSlaService(token: Token)(implicit ec: ExecutionContext): Future[Sla] =
+    (slaService ? token).mapTo[Sla]
+
 
   def successRace[T](f: Future[T], g: Future[T])(implicit ec: ExecutionContext): Future[T] = {
     val p = Promise[T]()
@@ -63,6 +61,13 @@ class SlaCacheActor extends Actor {
       _ foreach p.trySuccess
     }
     p.future
+  }
+
+  def getTime: Long = System.currentTimeMillis
+
+  case class SlaUpd(token: Token, sla: Sla) {
+    val user: User = User(sla.user)
+    val rps: Int = sla.rps
   }
 }
 
