@@ -1,14 +1,14 @@
 package com.github.core
 
 import scala.concurrent.{ExecutionContext, Future}
-import com.github.Config
+import akka.actor.ActorRef
+import akka.pattern.ask
+import akka.util.Timeout
 
-object ThrottlingServiceCore extends ThrottlingService {
-  val graceRps: Int = Config.graceRps
-  val slaService: SlaService = new SlaServiceMock
+class ThrottlingServiceCore(counter: ActorRef, timeout: Timeout) extends ThrottlingService {
+  val slaService = counter
+  implicit val timeout1 = timeout
 
-  def isRequestAllowed(token: Option[String])(implicit ec: ExecutionContext): Future[Boolean] = token match {
-    //    case Some(tokenCheck) => slaService.getSlaByToken(tokenCheck).map(_.rps > 0) // ???
-    case None => Future(false)
-  }
+  def isRequestAllowed(token: Option[String])(implicit ec: ExecutionContext): Future[Boolean] =
+    (slaService ? token).mapTo[Boolean]
 }

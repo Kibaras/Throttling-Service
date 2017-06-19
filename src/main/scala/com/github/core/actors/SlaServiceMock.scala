@@ -1,9 +1,10 @@
-package com.github.core
+package com.github.core.actors
 
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 import akka.actor.{Actor, ActorRef}
+import com.github.core.SlaService
 import com.github.model.commands.RemoveQuerryedToken
 import com.github.model.{Sla, Token}
 import com.typesafe.scalalogging.LazyLogging

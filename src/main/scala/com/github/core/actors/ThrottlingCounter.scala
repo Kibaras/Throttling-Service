@@ -6,7 +6,6 @@ import scala.util.Failure
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
-import com.github.core.SlaCacheActor
 import com.github.model.commands.{IncreaseReached, IncreaseRps, RenewRps}
 import com.github.model.{NewSlaData, Sla, Token, User}
 import com.typesafe.scalalogging.LazyLogging
@@ -65,15 +64,17 @@ class ThrottlingCounter extends Actor with LazyLogging {
   }
 
   def isRequestAllowed(newSla: NewSlaData): Boolean = {
-    usedRPS.get(newSla.user) match {
-      case None => true
+    val allowed = usedRPS.get(newSla.user) match {
+      case None => false
       case Some(rps) => rps.used < rps.rps
     }
+    if (allowed) increaseRps(newSla.user)
+    allowed
   }
 
-  def clearUserData(user: User) = usedRPS.remove(user)
+  def clearUserData(user: User): Option[Rps] = usedRPS.remove(user)
 
-  def increaseRps(user: User) = selfRef ! IncreaseRps(user)
+  def increaseRps(user: User): Unit = selfRef ! IncreaseRps(user)
 
   override def preStart(): Unit = {
     super.preStart()

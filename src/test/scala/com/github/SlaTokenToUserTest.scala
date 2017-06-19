@@ -3,7 +3,7 @@ package com.github
 import scala.collection.mutable
 import scala.util.Random
 import akka.actor.Props
-import com.github.core.SlaServiceMock
+import com.github.core.actors.SlaServiceMock
 import com.github.model.{Sla, Token}
 
 class SlaTokenToUserTest extends ActorTestTemplate("SlaTokenToUserSystem") {

@@ -4,7 +4,7 @@ import scala.concurrent.duration._
 import scala.util.Random
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
-import com.github.core.SlaServiceMock
+import com.github.core.actors.SlaServiceMock
 import com.github.model.{Sla, Token}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 

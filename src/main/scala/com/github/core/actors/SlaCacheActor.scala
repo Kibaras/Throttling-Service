@@ -1,4 +1,4 @@
-package com.github.core
+package com.github.core.actors
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -81,4 +81,3 @@ class SlaCacheActor extends Actor with LazyLogging {
     val rps: Int = sla.rps
   }
 }
-

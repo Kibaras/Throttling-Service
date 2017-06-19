@@ -2,7 +2,7 @@ package com.github
 
 import scala.concurrent.duration._
 import akka.actor.Props
-import com.github.core.SlaCacheActor
+import com.github.core.actors.SlaCacheActor
 import com.github.model.{Sla, Token}
 
 class SlaCacheTest extends ActorTestTemplate("cache_system") {
