@@ -6,6 +6,7 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
 import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
+import com.github.model.commands.ClearCache
 import com.github.model.{Sla, SlaCache, Token, User}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -13,6 +14,7 @@ class SlaCacheActor extends Actor with LazyLogging {
   import context.dispatcher
 
   implicit val timeout = Timeout(100 second)
+  val selfRef: ActorRef = self
 
   val clearTimeout: Int = 3 * 1000
 
@@ -33,8 +35,7 @@ class SlaCacheActor extends Actor with LazyLogging {
       logger.debug(s"Message $token from $senderRef was gotten")
       requestSlaService(token)
         .map { sla =>
-          val newSla = SlaUpd(token, sla)
-          self ! newSla
+          selfRef ! SlaUpd(token, sla)
           senderRef ! sla
         }
       getCachedData(token, slaCache)
@@ -81,4 +82,3 @@ class SlaCacheActor extends Actor with LazyLogging {
   }
 }
 
-case object ClearCache

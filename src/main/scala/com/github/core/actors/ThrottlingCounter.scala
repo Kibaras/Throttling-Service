@@ -7,6 +7,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.github.core.SlaCacheActor
+import com.github.model.commands.{IncreaseReached, IncreaseRps, RenewRps}
 import com.github.model.{NewSlaData, Sla, Token, User}
 import com.typesafe.scalalogging.LazyLogging
 
@@ -81,9 +82,4 @@ class ThrottlingCounter extends Actor with LazyLogging {
   }
 }
 
-case object RenewRps
-case object IncreaseReached
-
 case class Rps(rps: Int, used: Int, lastUpd: Long, increased: Boolean)
-case class IncreaseRps(user: User)
-
