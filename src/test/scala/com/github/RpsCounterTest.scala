@@ -16,10 +16,10 @@ class RpsCounterTest extends ActorTestTemplate("RpsCounterAS") {
       Thread.sleep(40)
       val token = Token.generateToken(4)
       rpsActor ! token
-      expectMsg(true)
-      Thread.sleep(50)
+      expectMsg(false)
+      Thread.sleep(100)
       rpsActor ! token
-      expectMsg(4 millis, true)
+      expectMsg(5 millis, true)
     }
   }
 }

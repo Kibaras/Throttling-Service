@@ -8,14 +8,12 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.github.model.commands.{IncreaseReached, IncreaseRps, RenewRps}
-import com.github.model.{NewSlaData, Sla, Token, User}
+import com.github.model._
 import com.typesafe.scalalogging.LazyLogging
 
-class ThrottlingCounter extends Actor with LazyLogging {
+class ThrottlingCounter extends Actor with LazyLogging with CountRequests {
   import context.dispatcher
 
-  val usedRPS = mutable.Map[User, Rps]()
-  val tokenUser = mutable.Map[Token, User]()
   val interval: FiniteDuration = 100 millis
   val selfRef: ActorRef = self
 
@@ -24,7 +22,6 @@ class ThrottlingCounter extends Actor with LazyLogging {
   implicit val timeout = Timeout(1000 millis)
 
   def receive: Receive = {
-
     case token: Token =>
       val senderRef = sender()
       var increased = false
@@ -73,43 +70,26 @@ class ThrottlingCounter extends Actor with LazyLogging {
   }
 
   def isRequestAllowed(token: Token): Boolean = {
-    val allowed = tokenUser.get(token).exists(usr =>
-      usedRPS.get(usr) match {
-        case None => false
-        case Some(rps) => rps.used < rps.rps
-      })
-    if (allowed) tokenUser.get(token).foreach(increase)
+    val allowed = getUserByToken(token).exists(isAllowedForUser)
+    if (allowed) getUserByToken(token).foreach(increase)
     allowed
   }
 
-  def increase(user: User) = usedRPS.get(user).map { rps =>
-    usedRPS += user -> rps.copy(used = rps.used + 1)
-  }
-
   def isRequestAllowedAsync(token: Token): Boolean = {
-    val allowed = tokenUser.get(token).exists(usr =>
-      usedRPS.get(usr) match {
-        case None => false
-        case Some(rps) => rps.used <= rps.rps
-      })
+    val allowed = getUserByToken(token).exists(isAllowedForUser)
     if (allowed) increaseRps(token)
     allowed
   }
 
   def isRequestAllowed(newSla: NewSlaData): Boolean = {
-    val allowed = usedRPS.get(newSla.user) match {
-      case None => false
-      case Some(rps) => rps.used <= rps.rps
-    }
+    val allowed = isAllowedForUser(newSla.user)
     if (allowed) increaseRps(newSla.user)
     allowed
   }
 
-  def clearUserData(user: User): Option[Rps] = usedRPS.remove(user)
-
   def increaseRps(user: User): Unit = selfRef ! IncreaseRps(user)
 
-  def increaseRps(token: Token): Unit = tokenUser.get(token).foreach(user => selfRef ! IncreaseRps(user))
+  def increaseRps(token: Token): Unit = getUserByToken(token).foreach(user => selfRef ! IncreaseRps(user))
 
   def requestSlaService(token: Token)(implicit ec: ExecutionContext): Future[Sla] =
     (slaService ? token).mapTo[Sla]
@@ -121,4 +101,3 @@ class ThrottlingCounter extends Actor with LazyLogging {
   }
 }
 
-case class Rps(rps: Int, used: Int, lastUpd: Long, increased: Boolean)
