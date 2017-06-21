@@ -4,10 +4,9 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 import akka.actor.{ActorSystem, Props}
-import akka.util.Timeout
-import akka.http.scaladsl.Http.ServerBinding
-import akka.http.scaladsl.{Http, server}
+import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
+import akka.util.Timeout
 import com.github.core.actors.MainActor
 import com.github.core.{ThrottlingService, ThrottlingServiceCore}
 import com.github.route.MainRoute
@@ -22,8 +21,6 @@ object Boot extends App with MainRoute with LazyLogging {
   val mainActor = actorSystem.actorOf(Props[MainActor])
 
   val throttlingService: ThrottlingService = new ThrottlingServiceCore(mainActor, timeout)
-
-  println(Config.bindPort + ":" + Config.bindInterface)
 
   Http().bindAndHandle(throtlingRoute, Config.bindInterface, Config.bindPort).andThen{
     case Success(s) => logger.info(s"service started at ${Config.bindInterface} port:${Config.bindPort}")

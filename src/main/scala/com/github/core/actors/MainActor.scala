@@ -12,8 +12,8 @@ class MainActor extends Actor {
   import context.dispatcher
 
   var emptyRequest: Int = 0
-  val graceRps: Int =  1// Config.graceRps
-  val throttlingCounter: ActorRef = context.system.actorOf(Props[ThrottlingCounter])
+  val graceRps: Int =  Config.graceRps
+  val throttlingCounter: ActorRef = context.system.actorOf(Props[ThrottlingCounter].withDispatcher("custom-dispatcher"))
   implicit val timeout = Timeout(1 second)
 
   def receive: Receive = {

@@ -5,7 +5,7 @@ import akka.actor.ActorRef
 
 trait ThrottlingService {
 
-  val slaService: ActorRef // use mocks/stubs for testing
+  val rpsCounter: ActorRef // use mocks/stubs for testing
   // Should return true if the request is within allowed RPS.
   def isRequestAllowed(token: Option[String])(implicit ec: ExecutionContext): Future[Boolean]
 }
