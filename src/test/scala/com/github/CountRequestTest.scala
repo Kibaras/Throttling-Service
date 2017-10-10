@@ -1,20 +1,21 @@
 package com.github
 
+import scala.util.Random
 import com.github.core.actors.CountRequests
-import com.github.model.{Rps, Token, User}
+import com.github.model.{Rps, User}
 import org.scalatest.{Matchers, WordSpec}
 
 class CountRequestTest extends WordSpec with CountRequests with Matchers {
   "Count Requests" must {
-    val user = User("name")
+    val user = "name"
 
     "method 'getUserByToken' return user by token" in {
-      val token = Token.generateToken(6)
+      val token = Random.alphanumeric.take(6).mkString
       tokenUser += token -> user
 
       getUserByToken(token) shouldBe Some(User("name"))
 
-      getUserByToken(Token.generateToken(2)) shouldBe None
+      getUserByToken(Random.alphanumeric.take(6).mkString) shouldBe None
     }
 
     "method 'increase' must increase 'usedRps' parameter" in {
@@ -32,8 +33,8 @@ class CountRequestTest extends WordSpec with CountRequests with Matchers {
     }
 
     "method 'isAllowedForUser' must return true if allowed" in {
-      usedRPS += User("s") -> Rps(10, 1, 2L, false)
-      isAllowedForUser(User("s")) shouldBe true
+      usedRPS += "s" -> Rps(10, 1, 2L, false)
+      isAllowedForUser("s") shouldBe true
     }
   }
 }
