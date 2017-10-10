@@ -4,14 +4,14 @@ import scala.collection.mutable
 import scala.util.Random
 import akka.actor.Props
 import com.github.core.actors.SlaServiceMock
-import com.github.model.{Sla, Token}
+import com.github.model.Sla
 
 class SlaTokenToUserTest extends ActorTestTemplate("SlaTokenToUserSystem") {
 
   "An SlaService" must {
     val sla = system.actorOf(Props[SlaServiceMock])
     "Must return same user on same token" in {
-      val token = Token(Random.alphanumeric.take(5).mkString)
+      val token = Random.alphanumeric.take(5).mkString
       val set = mutable.Set[String]()
 
       sla ! token
