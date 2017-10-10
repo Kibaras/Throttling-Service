@@ -1,6 +1,7 @@
 package com.github.core.actors
 
-import scala.collection.mutable
+import java.util.concurrent.ConcurrentHashMap
+import scala.collection.convert.decorateAsScala._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 import akka.actor.{Actor, ActorRef}
@@ -12,21 +13,23 @@ import com.typesafe.scalalogging.LazyLogging
 class SlaServiceMock extends Actor with SlaService with LazyLogging {
   import context.dispatcher
 
-  protected val tokenToNameHolder = mutable.Map[String, String]()
+  private[this] val tokenToNameHolder = new ConcurrentHashMap[String, String]().asScala
 
-  protected val query = mutable.Map[Token, mutable.HashSet[ActorRef]]()
+  private[this] val query = new ConcurrentHashMap[Token, Set[ActorRef]]().asScala
 
   def receive: Receive = {
     case RemoveQuerryedToken(token) =>
       query -= token
 
     case token: Token if query.contains(token) =>
-      query.get(token).map(_ += sender())
+      query.get(token).foreach { e =>
+        query(token) = e + sender()
+      }
       logger.debug(s"Sla Query $token")
 
     case token: Token =>
       logger.debug(s"got $token")
-      val receiversSet = mutable.HashSet[ActorRef](sender())
+      val receiversSet = Set[ActorRef](sender())
       logger.debug(s"Sender inserted to receiversSet $receiversSet")
       query += token -> receiversSet
       val sla = getSlaByToken(token.token)
@@ -49,7 +52,7 @@ class SlaServiceMock extends Actor with SlaService with LazyLogging {
   }
 
   override def getSlaByToken(token: String): Sla =
-    Sla(getUser(token), 100/*Random.nextInt(50) + 1*/)
+    Sla(getUser(token), Random.nextInt(50) + 1)
 
   def getUser(token: String): String = {
     tokenToNameHolder.get(token) match {
@@ -60,6 +63,4 @@ class SlaServiceMock extends Actor with SlaService with LazyLogging {
         user
     }
   }
-
-  case class UserToken(user: String, token: String)
 }
