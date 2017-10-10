@@ -1,23 +1,24 @@
 package com.github.core.actors
 
-import scala.collection.mutable
-import com.github.model.{Rps, Token, User}
+import java.util.concurrent.ConcurrentHashMap
+import scala.collection.convert.decorateAsScala._
+import com.github.model.{Rps, User}
 
 trait CountRequests {
 
-  val usedRPS = mutable.Map[User, Rps]()
-  val tokenUser = mutable.Map[Token, User]()
+  val usedRPS = new ConcurrentHashMap[String, Rps]().asScala
+  val tokenUser = new ConcurrentHashMap[String, String]().asScala
 
-  def getUserByToken(token: Token): Option[User] = tokenUser.get(token)
+  def getUserByToken(token: String): Option[String] = tokenUser.get(token)
 
-  def clearUserData(user: User): Option[Rps] = usedRPS.remove(user)
+  def clearUserData(user: String): Option[Rps] = usedRPS.remove(user)
 
-  def isAllowedForUser(user: User): Boolean = usedRPS.get(user) match {
+  def isAllowedForUser(user: String): Boolean = usedRPS.get(user) match {
     case None => false
     case Some(rps) => rps.used < rps.rps
   }
 
-  def increase(user: User) = usedRPS.get(user).map { rps =>
-    usedRPS += user -> rps.copy(used = rps.used + 1)
-  }
+  def increase(user: String) = usedRPS
+    .get(user)
+    .foreach(rps => usedRPS += user -> rps.copy(used = rps.used + 1))
 }
