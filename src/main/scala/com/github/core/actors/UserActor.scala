@@ -1,6 +1,6 @@
 package com.github.core.actors
 
-import akka.actor.Actor
+import akka.actor.{Actor, ActorRef}
 import com.github.model.commands.RenewRps
 
 class UserActor(initRps: Int) extends Actor {
@@ -13,13 +13,13 @@ class UserActor(initRps: Int) extends Actor {
   var increased = false
 
   def receive: Receive = {
-    case "ok?" =>
+    case receiverActor: ActorRef =>
       used += 1
       if (!increased && used > rps) {
         increased = true
         used /= 2
       }
-      sender() ! (used <= rps)
+      receiverActor ! (used <= rps)
 
     case newRps: Int =>
       rps = newRps
