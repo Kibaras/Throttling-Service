@@ -47,7 +47,7 @@ class SlaServiceMock extends Actor with SlaService with LazyLogging {
   }
 
   def getSlaByToken(token: String): Sla =
-    Sla(getUser(token), /*Random.nextInt(50) + 1*/ 300)
+    Sla(getUser(token), /*Random.nextInt(50) + 1*/ 100)
 
   def getUser(token: String): String = {
     tokenToNameHolder.get(token) match {

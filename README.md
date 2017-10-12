@@ -12,7 +12,7 @@ example: http://localhost:8080/
 graceRps could be setted up with parameter "graceRps" in application.conf
 
 for benchmarking you can use service:
-https://github.com/Kibaras/Throttling-Service-Benchmark.git
+ThrottlingSimulation.scala - gatling scenario file 
 
-i suggest to uncomment 'Random.nextInt(50) + 1' in getSlaByToken method in SlaServiceMock
+I suggest to uncomment 'Random.nextInt(50) + 1' in getSlaByToken method in SlaServiceMock
 or there you can setup Sla response more detailed
