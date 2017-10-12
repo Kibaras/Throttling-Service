@@ -5,6 +5,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 import akka.actor.{Actor, ActorRef}
+import com.github.Config
 import com.github.core.SlaService
 import com.github.model.Sla
 import com.github.model.commands.RemoveQueriedToken
@@ -47,7 +48,7 @@ class SlaServiceMock extends Actor with SlaService with LazyLogging {
   }
 
   def getSlaByToken(token: String): Sla =
-    Sla(getUser(token), /*Random.nextInt(50) + 1*/ 100)
+    Sla(getUser(token), /*Random.nextInt(50) + 1*/ Config.defaultRps)
 
   def getUser(token: String): String = {
     tokenToNameHolder.get(token) match {

@@ -10,4 +10,6 @@ object Config {
   val bindPort = appConfig.getInt("bindPort")
 
   val graceRps = appConfig.getInt("graceRps")
+
+  val defaultRps = appConfig.getInt("defaultRps")
 }
