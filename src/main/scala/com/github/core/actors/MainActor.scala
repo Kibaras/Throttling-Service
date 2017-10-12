@@ -10,7 +10,7 @@ import com.github.model.exceptions.UnauthorizedException
 class MainActor extends Actor {
   var emptyRequest: Int = 0
   val graceRps: Int =  Config.graceRps
-  val throttlingCounter: ActorRef = context.system.actorOf(Props[UserManagerActor].withDispatcher("custom-dispatcher"))
+  val throttlingCounter: ActorRef = context.system.actorOf(Props[UserManagerActor])
   implicit val timeout: Timeout = Timeout(1 second)
 
   def receive: Receive = {
